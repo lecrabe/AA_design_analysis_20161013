@@ -856,7 +856,8 @@ server <- function(input, output,session) {
     
     maparea <- data.frame(cbind(
       legend,
-      1:length(legend),
+      #1:length(legend),
+      legend,
       table(shp@data[,class_attr]),
       areas)
     )
@@ -906,7 +907,8 @@ server <- function(input, output,session) {
       print(ids)
       tagList(
       lapply(1:length(ids),function(i){
-        textInput(paste0("txtInput",ids[i]), sprintf("Class name for map value: %d", as.double(mapareatable_reactive$map_value[i])), value=mapareatable_reactive$map_class[i], width="80%")
+        #textInput(paste0("txtInput",ids[i]), sprintf("Class name for map value: %d", as.double(mapareatable_reactive$map_value[i])), value=mapareatable_reactive$map_class[i], width="80%")
+        textInput(paste0("txtInput",ids[i]), sprintf("Class name for map value: %s", mapareatable_reactive$map_value[i]), value=mapareatable_reactive$map_class[i], width="80%")
          })
     )
   })
@@ -1227,7 +1229,7 @@ server <- function(input, output,session) {
               
               }
             
-            legend <- levels(as.factor(rp$map_value))
+            legend <- levels(as.factor(rp$map_class))
             
             shp <- lcmap()
             class_attr <- input$class_attribute_vector
@@ -1274,14 +1276,14 @@ server <- function(input, output,session) {
             ################## Export sampling design as points
             i=1
             polys <- shp[shp@data[,class_attr] == legend[i],]
-            pts<-spsample(polys,as.numeric(rp[rp$map_value == legend[i],]$final),type="stratified")
+            pts<-spsample(polys,as.numeric(rp[rp$map_class == legend[i],]$final),type="stratified")
             att_vec <- rep(legend[i],nrow(pts@coords))
             df_pts<-data.frame(cbind(pts@coords,att_vec))
             
             for(i in 2:length(legend)){
               tryCatch({
                 polys <- shp[shp@data[,class_attr] == legend[i],]
-                pts<-spsample(polys,as.numeric(rp[rp$map_value == legend[i],]$final),type="stratified")
+                pts<-spsample(polys,as.numeric(rp[rp$map_class == legend[i],]$final),type="stratified")
                 att_vec <- rep(legend[i],nrow(pts@coords))
                 tmp_pts<-data.frame(cbind(pts@coords,att_vec))
                 df_pts<-rbind(df_pts,tmp_pts)
@@ -1524,12 +1526,14 @@ server <- function(input, output,session) {
     dfss <- strat_sample()
     #dfss<-read.csv("C:/Users/dannunzio/Documents/aa_input/sampling.csv")
     
+    
     codes <- data.frame(
       cbind(
       dfss[,c(1,3)],
       seq(1020,1020+nrow(dfss)-1,1)
       )
       )
+    
     
     ################# Modify balloon
     balloon <- readLines("www/template_balloon.html")
