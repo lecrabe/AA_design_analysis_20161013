@@ -23,11 +23,9 @@
 	 * 
 	 * When multiple values can be sent ( in a multiple select for instance ) the
 	 * data sent in the Http parameters has to be separated using " " ( a space )
-	 * 
+	 *
 	 * When a value has multiple values they will be separated with "===" i.e.
 	 * collect_code_human_impact_type = "fire===logging===grazing"
-	 * 
-	 * 
 	 * 
 	 * Other inputs: earth_skip_filled
 	 * 
@@ -148,6 +146,8 @@
 <input type="hidden" id="collect_real_aspect" name="collect_real_aspect" value="$[EXTRA_aspect]" class="extra" />
 <input type="hidden" id="collect_text_region" name="collect_text_region" value="$[EXTRA_region]" class="extra" />
 <input type="hidden" id="collect_text_country" name="collect_text_country" value="$[EXTRA_country]" class="extra" />
+<input type="hidden" id="collect_text_geometry" name="collect_text_geometry" value="$[EXTRA_geometry]" class="extra" />
+<input type="hidden" id="collect_real_area" name="collect_real_area" value="$[EXTRA_area]" class="extra" />
 <input type="hidden" id="collect_code_map_class" name="collect_code_map_class" value="$[EXTRA_map_class]" class="extra" />
 
 <!-- END OF EXTRA CSV DATA -->
@@ -160,7 +160,7 @@
 <div class="form-group">
 <label class="control-label col-sm-4" for="collect_code_ref_class">Class</label>
 <div class="col-sm-8">
-<select class="form-control selectboxit show-menu-arrow show-tick" data-field-type="CODE_SELECT" data-width="75px" id="collect_code_ref_class" name="collect_code_ref_class"><option value="">Nothing selected</option><option value="Deforestation">wlimmm</option><option value="Forest Degradation">Forest Degradation</option><option value="Forest enhancement">Forest enhancement</option><option value="Forest preservation">Forest preservation</option><option value="Non Forest">Non Forest</option><option value="Sustainable forest">Sustainable forest</option></select>
+<select class="form-control selectboxit show-menu-arrow show-tick" data-field-type="CODE_SELECT" data-width="75px" id="collect_code_ref_class" name="collect_code_ref_class"><option value="">Nothing selected</option><option value="2">2</option><option value="4">4</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option></select>
 </div>
 </div>
 <div class="form-group">

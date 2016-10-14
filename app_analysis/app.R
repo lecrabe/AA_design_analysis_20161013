@@ -183,28 +183,24 @@ ui <- dashboardPage(skin='green',
                     areas of the map, sampling sizes, point file. 
                     It should be the same as output folder from AA_design",
                     br(),
-                    shinyDirButton('outdir', 'Select output folder', 'Please select a folder', FALSE),
+                    shinyDirButton('outdir', 'Select folder with collected points and area file', 'Please select a folder', FALSE),
                     textOutput("outdirpath")
                 ),
                 
                 box(title= "Required input", status = "success", solidHeader= TRUE, width= 4,
                     "Select the validation file exported from CollectEarth. 
-                    It must be placed in the input folder.
+                    
                     The area file should contain the map areas and the corresponding map class.
                     The area file can be generated in the Accuracy Assessment Design application.
-                    The validation file must contain a column with the classified reference data. 
-                    The reference data will be compared with the map data at the same location. 
-                    The validation can have a column with the map class, or the coordinates of the reference data. 
-                    If only the coordinates are available the map file must be selected and the map data will be extracted at the X and Y location of each reference point",
+                    The validation file must contain a column with the classified reference data and a column with the original map data. 
+                    The reference data will be compared with the map data at the same location.", 
+                    
                     br(),
                     uiOutput('uice_filename'),
                     uiOutput('uiarea_filename'),
                     uiOutput("column_ref"),
                     uiOutput("column_map"),
                    
-                    #uiOutput("referencedataType"),
-                    #checkboxInput("referencedataType", label="Do you want to use the map file to extract the map data?"),
-                    #uiOutput("selectMap"),
                     uiOutput("Xcrd"),
                     uiOutput("Ycrd")
               ),
@@ -339,20 +335,12 @@ server <- function(input, output,session) {
               selected = "area")
     })
   
-  ## Create an option to select a map file
-  #  output$selectMap <- renderUI({
-  #   if(input$referencedataType==T){
-  #     selectInput('map',label= 'map (.tif) (.shp)', list.files("../input/", pattern = "\\.tif$|\\.shp$"))
-  #   }
-  # })
-
   ## Map area CSV
     areas_i   <- reactive({
       req(input$areafilename)
       print("read data of area")
       ############### Read the name chosen from dropdown menu
       areas_i <- read.csv(paste(outdir(),"/",input$areafilename,sep="")) 
-      #areas_i <- read.csv(paste('../output/area_rci_bnetd.csv',sep="")) 
       })
   
     ## Collect earth output file
@@ -365,8 +353,7 @@ server <- function(input, output,session) {
       datafolder <- paste0(outdir(),"/",cefile)
       df_i <- read.csv(gsub(" ","",datafolder))
       df_i
-      #df_i <- read.csv('../input/collectedData_earthrci_aa_bnetd_on_220916_150352_CSV.csv')
-    })
+      })
     
     ## select column with reference data
     output$column_ref <- renderUI({
@@ -374,40 +361,40 @@ server <- function(input, output,session) {
                   'Choose the column with the reference data information', 
                   choices= names(df_i()),
                   multiple = FALSE,
-                  selected = "ref_code")
+                  selected = "ref_class")
     })
     
     ## select column with map data
     output$column_map <- renderUI({
-      #if(input$referencedataType==F){
+      
         selectInput('map_data', 
                     'Choose the column with the map data information', 
                     choices= names(df_i()),
                     multiple = FALSE,
-                    selected = "map_code")
-      #}
+                    selected = "map_class")
+      
     })
     
     ## select the column with the X coordinates
     output$Xcrd <- renderUI({
-      #if(req(input$referencedataType==T)){
+      
         selectInput('selectX', 
                     'Choose the column with the X coordinate', 
                     choices= names(df_i()),
                     multiple = FALSE,
                     selected = "location_x")
-      #}
+      
     })
     
     ## select the column with the Y coordinates
     output$Ycrd <- renderUI({
-      #if(req(input$referencedataType==T)){
+      
         selectInput('selectY', 
                     'Choose the column with the Y coordinate', 
                     choices= names(df_i()),
                     multiple = FALSE,
                     selected = "location_y")
-      #}
+      
     })
 
     ## columns in data table to display
@@ -425,61 +412,14 @@ server <- function(input, output,session) {
       df_i[, input$show_vars, drop = FALSE]
     })
     
-    ## Read the input map
-    # lcmap <- reactive({
-    #   if(input$referencedataType==T){
-    #   req(input$map)
-    #   print("read data")
-    #   inputfile <-input$map
-    #   ending <- str_sub(inputfile,-4)
-    #   
-    #   ############### Read the name chosen from dropdown menu
-    #   ############### Load the map corresponding to the selected name
-    #   dir <- paste0(outdir(),"/")
-    #   ## read either raster (.tif) file or vector (.shp) data
-    #   if(ending=='.tif'){
-    #     dataname <- gsub(" ","",paste(c(dir, inputfile),collapse=''))
-    #     lcmap <- raster(dataname)
-    #     print(lcmap)
-    #     lcmap
-    #   }else
-    #     if(ending=='.shp'){
-    #       base <- substr(inputfile,0,nchar(inputfile)-4)
-    #       withProgress(
-    #         message= 'Reading the shapefile ',
-    #         value = 0,
-    #         {
-    #           setProgress(value=.1)
-    #           lcmap <-readOGR(dsn=paste(dir,inputfile,sep=""),layer=base)
-    #         }
-    #       )
-    #     }
-    #   }
-    # })
+   
     
     ## if a custom map is uploaded to compare with the reference data, create a new map data column 
     df_i_map <- reactive({
       req(input$CEfilename)
       df_i <- df_i()
       df_i_map <- as.data.frame(df_i)
-      # lcmap <- lcmap()
-      # print(lcmap)
-      # if(input$referencedataType==T){
-      #   ending <- str_sub(input$map,-4)
-      #   xcoord <- input$selectX
-      #   ycoord <- input$selectY
-      #   xy <- cbind(df_i_map[,xcoord],df_i_map[,ycoord])
-      #   if(ending=='.tif'){
-      #     df_i_map$map_code <- extract(lcmap,xy) 
-      #   }else
-      #     if(ending=='.shp'){
-      #       proj4string(xy) <- proj4string(lcmap)
-      #       df_i_map$map_code <- over(xy,lcmap)
-      #     }
-      #   df_i_map
-      # }
-      # 
-      df_i_map
+      
     })
     
   ##################################################################################################################################
@@ -547,7 +487,7 @@ server <- function(input, output,session) {
     print("Legend")
     df_i_map <- df_i_map()
     map_code <- input$map_data
-    #map_code <- "class"
+    
     if(!is.null(input$map_data)){legend_i <- levels(as.factor(df_i_map[,map_code]))}
     if(!is.null(input$map)){
       lcmap
@@ -589,7 +529,7 @@ server <- function(input, output,session) {
     table(df_i_map[,lns])
   }
   ,include.rownames = T,include.colnames = T)
-  #names(input$check_incols))
+  
   
   ################################################    
   ################ Display all the points
@@ -623,16 +563,25 @@ server <- function(input, output,session) {
     if(input$filter_presence==T){    
       df <- df_f()
     }else{df <- df_i_map()}
+    
+    # df <- read.csv("../../../../../aa_input/collectedData_mockup_aa_CE_2016-10-14_2016-10-14.csv")
+    # areas <- read.csv("../../../../../aa_input/area_shp.csv")
+    # ref_code <- "ref_class"
+    # map_code <- "map_class"
+    # legend <- levels(as.factor(df[,map_code]))
+    
     areas <- areas_i()
     legend <- legend_i()
     ref_code <- input$reference_data
     map_code <- input$map_data
     
-    # ref_code <- "ref_code"
-    # map_code <- "class"
     
     print("test matrix")
     tmp <- as.matrix(table(df[,map_code,],df[,ref_code]))
+  
+    # tmp <- tapply(df$area,df[,c(map_code,ref_code)],sum)
+    # tmp[is.na(tmp)]<- 0
+    
     matrix<-matrix(0,nrow=length(legend),ncol=length(legend))
     
     for(i in 1:length(legend)){
@@ -671,7 +620,8 @@ server <- function(input, output,session) {
     for(i in 1:length(legend)){
       for(j in 1:length(legend)){
         tryCatch({
-          matrix_se[i,j] <- areas[areas$map_class==legend[i],]$map_area/sum(areas$map_area)*areas[areas$map_class==legend[i],]$map_area/sum(areas$map_area)*
+          matrix_se[i,j] <- areas[areas$map_class==legend[i],]$map_area/sum(areas$map_area)*
+            areas[areas$map_class==legend[i],]$map_area/sum(areas$map_area)*
             matrix[i,j]/
             sum(matrix[i,])*
             (1-matrix[i,j]/sum(matrix[i,]))/

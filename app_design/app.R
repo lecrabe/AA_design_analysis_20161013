@@ -456,7 +456,8 @@ server <- function(input, output,session) {
   ##################################################################################################################################    
   ############### HARDCODED ROOT FOLDER : everything will be lower
   volumes <- c('User directory'=Sys.getenv("HOME"),
-               'Mon disque C par exemple' = 'C:/')
+               'C drive' = 'C:/',
+               'Windows drive' = '/media/xubuntu/OSDisk/Users/dannunzio/Documents/')
   
   
   ##################################################################################################################################    
@@ -618,8 +619,6 @@ server <- function(input, output,session) {
   })
   
   # Read the input csv to the variable rasterAreaCSV
-  ## Change the input data source. Right now it is where the output from the Map area data is stored. Figure out how to make the file location more interactive
-  # The user can select which column has the class attribute information from the CSV
   output$selectUI_value_raster <- renderUI({
     req(mapType()== "raster_type", input$IsManualAreaRaster)
     areacsv <- rasterAreaCSV()
@@ -657,7 +656,6 @@ server <- function(input, output,session) {
   })
   
   # Display the input csv as a Data Table
-  # Edit this so the table will fit in the window
   output$dataTable_rasterCSV <- renderDataTable({
     req(mapType()== "raster_type", input$IsManualAreaRaster, input$show_vars1)
     rasterAreaCSV <- rasterAreaCSV()
@@ -711,12 +709,9 @@ server <- function(input, output,session) {
   ##################################################################################################################################
   ############### Insert the Area calculation button
   output$IsAreaCalc <- renderUI({
-    #req(input$IsManualAreaRaster,input$IsManualAreaVector)
-    #if(req(input$IsManualAreaRaster == FALSE) | req(input$IsManualAreaVector == FALSE)){
     actionButton('areaCalcButton','Area calculation and legend generation')
-    # }
-    
-  })
+    }
+    )
   
   ##################################################################################################################################
   ############### Setup whether Calculation of area in raster mode should be done with R or OFT
@@ -767,10 +762,10 @@ server <- function(input, output,session) {
         stats <- as.data.frame(read.table(paste0(outdir(),"/stats.txt")))
         names(stats) <- c('map_value', 'map_area','map_class')
         stats<-arrange(stats,map_value)
-        write.csv(stats[,1:3],paste0(outdir(),"/area_rast.csv"),row.names=F)
+        write.csv(stats[,1:2],paste0(outdir(),"/area_rast.csv"),row.names=F)
         print("Calculation with OFT-STAT: OK")
         print(stats[,1:2])
-        stats <- stats[,1:3]
+        stats <- stats[,1:2]
       }
       
       ############### Use R to compute the areas
@@ -907,7 +902,6 @@ server <- function(input, output,session) {
       print(ids)
       tagList(
       lapply(1:length(ids),function(i){
-        #textInput(paste0("txtInput",ids[i]), sprintf("Class name for map value: %d", as.double(mapareatable_reactive$map_value[i])), value=mapareatable_reactive$map_class[i], width="80%")
         textInput(paste0("txtInput",ids[i]), sprintf("Class name for map value: %s", mapareatable_reactive$map_value[i]), value=mapareatable_reactive$map_class[i], width="80%")
          })
     )
@@ -1125,7 +1119,7 @@ server <- function(input, output,session) {
   ##################################################################################################################################
   ############### Generate points 
   
-  all_points <- reactive({
+  all_features <- reactive({
     if(mapType()== "raster_type"){
       rp <- strat_sample()[,c(1,2,3,13)]
       print("c'est ici")
@@ -1212,7 +1206,7 @@ server <- function(input, output,session) {
       }
       endCluster()
       all_points <- final
-      all_points
+      all_features <- all_points
     }
     
     ## If it is of vector type
@@ -1226,91 +1220,79 @@ server <- function(input, output,session) {
             rp <- strat_sample()
             if(input$IsManualSampling == T){
               rp <- read.csv(paste0(outdir(),"/", input$manualSampling$name), header = T)
-              
               }
             
-            legend <- levels(as.factor(rp$map_class))
+            # rp <- read.csv("../../../../../aa_input/sampling.csv")
+            # shp <- readOGR("../../../../../aa_input/aa_test.shp","aa_test")
+            # class_attr <- "class_chan"
             
+            legend <- levels(as.factor(rp$map_class))
             shp <- lcmap()
             class_attr <- input$class_attribute_vector
             
+            out_list <- shp[0,]
             
-            ################## Export sampling design as polygons
-            # ## Start with class 1 and create a selection
-            # i=1
-            # 
-            # ## Select only the polygons of the map which are present in the legend
-            # polys <- shp[shp@data[, class_attr] == legend[i] & !(is.na(shp@data[, class_attr])), ]
-            # 
-            # ## If the number of polygons is smaller than the sample size, take all polygons 
-            # if (nrow(polys) < as.numeric(rp[rp$map_class == legend[i], ]$final))
-            #   {n <- nrow(polys)}
-            # else
-            #   {n <- as.numeric(rp[rp$map_class == legend[i], ]$final)}
-            # 
-            # ## Randomly select the polygons
-            # pts <- polys[sample(nrow(polys), n), ]
-            # 
-            # #set.seed(i)
-            # 
-            # ## Loop through the remaining classes, do the same and append
-            # 
-            # for(i in 2:length(legend)){
-            #   
-            #   ## Select only the polygons of the map which are present in the legend
-            #   polys <- shp[shp@data[, class_attr] == legend[i] & !(is.na(shp@data[, class_attr])), ]
-            #   
-            #   ## If the number of polygons is smaller than the sample size, take all polygons 
-            #   if (nrow(polys) < as.numeric(rp[rp$map_class == legend[i], ]$final)) 
-            #     {n <- nrow(polys)}
-            #   else 
-            #     {n <- as.numeric(rp[rp$map_class == legend[i], ]$final)}
-            #   
-            #   ## Randomly select the polygons
-            #   df_pts <- polys[sample(nrow(polys), n), ]
-            #   
-            #   ## Append to the existing list
-            #   df_pts <- rbind(df_pts, pts)
-            # }
-            
-            ################## Export sampling design as points
-            i=1
-            polys <- shp[shp@data[,class_attr] == legend[i],]
-            pts<-spsample(polys,as.numeric(rp[rp$map_class == legend[i],]$final),type="stratified")
-            att_vec <- rep(legend[i],nrow(pts@coords))
-            df_pts<-data.frame(cbind(pts@coords,att_vec))
-            
-            for(i in 2:length(legend)){
-              tryCatch({
-                polys <- shp[shp@data[,class_attr] == legend[i],]
-                pts<-spsample(polys,as.numeric(rp[rp$map_class == legend[i],]$final),type="stratified")
-                att_vec <- rep(legend[i],nrow(pts@coords))
-                tmp_pts<-data.frame(cbind(pts@coords,att_vec))
-                df_pts<-rbind(df_pts,tmp_pts)
-              }, error=function(e){cat("No points to sample in this class \n")}
-              )
+            ## Loop through the classes, extract the computed random number of polygons for each class and append
+
+            for(i in 1:length(legend)){
+
+              ## Select only the polygons of the map which are present in the legend
+              polys <- shp[shp@data[, class_attr] == legend[i] & !(is.na(shp@data[, class_attr])), ]
               
+              ## If the number of polygons is smaller than the sample size, take all polygons
+              
+              if (nrow(polys) < as.numeric(rp[rp$map_class == legend[i], ]$final))
+                {n <- nrow(polys)}else
+                {n <- as.numeric(rp[rp$map_class == legend[i], ]$final)}
+
+              ## Randomly select the polygons
+              tmp <- polys[sample(nrow(polys), n), ]
+
+              ## Append to the existing list
+              out_list <- rbind(out_list, tmp)
             }
             
-            df_pts[,1]<-as.numeric(df_pts[,1])
-            df_pts[,2]<-as.numeric(df_pts[,2])
+           all_features <- out_list
             
-            sp_df <- SpatialPointsDataFrame(
-              coords=data.frame(df_pts[,c(1,2)]),
-              data=data.frame(df_pts[,3]),
-              proj4string=CRS(proj4string(shp))
-              )
-            
-            all_points <- sp_df
+            # ################## Export sampling design as points
+            # i=1
+            # polys <- shp[shp@data[,class_attr] == legend[i],]
+            # pts<-spsample(polys,as.numeric(rp[rp$map_class == legend[i],]$final),type="stratified")
+            # att_vec <- rep(legend[i],nrow(pts@coords))
+            # df_pts<-data.frame(cbind(pts@coords,att_vec))
+            # 
+            # for(i in 2:length(legend)){
+            #   tryCatch({
+            #     polys <- shp[shp@data[,class_attr] == legend[i],]
+            #     pts<-spsample(polys,as.numeric(rp[rp$map_class == legend[i],]$final),type="stratified")
+            #     att_vec <- rep(legend[i],nrow(pts@coords))
+            #     tmp_pts<-data.frame(cbind(pts@coords,att_vec))
+            #     df_pts<-rbind(df_pts,tmp_pts)
+            #   }, error=function(e){cat("No points to sample in this class \n")}
+            #   )
+            #   
+            # }
+            # 
+            # df_pts[,1]<-as.numeric(df_pts[,1])
+            # df_pts[,2]<-as.numeric(df_pts[,2])
+            # 
+            # sp_df <- SpatialPointsDataFrame(
+            #   coords=data.frame(df_pts[,c(1,2)]),
+            #   data=data.frame(df_pts[,3]),
+            #   proj4string=CRS(proj4string(shp))
+            #   )
+            # 
+            # all_points <- sp_df
           })
-    }
-    all_points
+      ######## End of the Vector Loop
+      }
+    all_features
   })
 
   ##################################################################################################################################
   ############### Create vector layer with the points
   spdf <- reactive({
-        req(all_points())
+        req(all_features())
         
         ## If input map is a raster
         if(mapType()== "raster_type"){
@@ -1319,7 +1301,7 @@ server <- function(input, output,session) {
             value = 0, 
             {
               setProgress(value=.1)
-              points <- all_points()
+              points <- all_features()
               map <- lcmap()
               
               sp_df<-SpatialPointsDataFrame(
@@ -1329,8 +1311,6 @@ server <- function(input, output,session) {
               )
               
               sp_df <- spTransform(sp_df,CRS("+proj=longlat +datum=WGS84"))
-              
-              sp_df
             })
         }
         
@@ -1342,7 +1322,8 @@ server <- function(input, output,session) {
             value = 0, 
             {
               setProgress(value=.1)
-              sp_df <- spTransform(all_points(),"+init=epsg:4326")
+              all_features()
+              
             })
     }
   })
@@ -1353,119 +1334,188 @@ server <- function(input, output,session) {
   ## render the map
   output$plotxy  <-  renderLeaflet({
     
-    dfa<-spdf()
     
- #   if(mapType()== "raster_type"){
-    names(dfa)<- 'map_value'
-    factpal <- colorFactor("Spectral", dfa$map_value)
-    m <- leaflet() %>%
-      addTiles() %>%  # Add default OpenStreetMap map tiles
-      addCircleMarkers(data = dfa, color= ~factpal(map_value),
+    
+    if(mapType()== "raster_type"){
+      dfa<-spdf()
+      names(dfa)<- 'map_value'
+      factpal <- colorFactor("Spectral", dfa$map_value)
+      m <- leaflet() %>%
+        addTiles() %>%  # Add default OpenStreetMap map tiles
+        addCircleMarkers(data = dfa, color= ~factpal(map_value),
                        fillOpacity = 0.4,
                        radius = 5,
                        popup = ~paste(sprintf("Map value: %s", map_value))
                        )
-    
-    m
-    
-    ################## Display sampling design as polygons
-    #             p <- ggplot(dfa, aes(x_coord, y_coord))
-    #             p + geom_point(aes(colour = factor(Map_value)))
-    #print('display sample points...')
-    # }else
-    #   if(mapType()== "vector_type"){
-    #     
-    #     print('plot the points for assessing the vector map')
-    #     
-    #     class_attr <- input$class_attribute_vector
-    #     names(dfa)[names(dfa) == class_attr] <- c("map_value")
-    #     factpal   <- colorFactor("Spectral", dfa@data$map_value)
-    #     m <- leaflet() %>%
-    #       addTiles() %>%  # Add default OpenStreetMap map tiles
-    #       #        addCircleMarkers(data = coordinates(data.frame(x=0, y=32))#data = dfa, color= ~ factpal(map_class),
-    #       #                        fillOpacity = 1,
-    #       #                        radius = 1
-    #       #      )
-    #       addPolygons(
-    #         data = dfa, stroke = FALSE, fillOpacity = 1, color = ~ factpal(map_value), popup = ~paste(sprintf("Map value: %s", map_value))
-    #       )
-    #     m
-    #   }
+      m
+    }
+    else{
+      if(mapType()== "vector_type"){
+        dfa <- spTransform(all_features(),CRS("+proj=longlat +datum=WGS84"))
+        print('plot the points for assessing the vector map')
+
+        class_attr <- input$class_attribute_vector
+        names(dfa)[names(dfa) == class_attr] <- c("map_value")
+        factpal   <- colorFactor("Spectral", dfa@data$map_value)
+        m <- leaflet() %>%
+          addTiles() %>%  # Add default OpenStreetMap map tiles
+          #        addCircleMarkers(data = coordinates(data.frame(x=0, y=32))#data = dfa, color= ~ factpal(map_class),
+          #                        fillOpacity = 1,
+          #                        radius = 1
+          #      )
+          addPolygons(
+            data = dfa, stroke = FALSE, fillOpacity = 1, color = ~ factpal(map_value), popup = ~paste(sprintf("Map value: %s", map_value))
+          )
+        m
+      }
+    }
   })
 
 
   ################################################################################################################################
   ############### Create the Collect Earth file
   CEfile <- reactive({
-    print("reading CEFile loop")
-    ################ Get the points
-    sp_df<-spdf()
-    coord <- sp_df@coords
-    map_code <- sp_df@data[,1]
-    nsamples <- nrow(coord)
-    ID <- matrix(sample(1:nsamples , nsamples , replace=F),nrow = nsamples , ncol =1, dimnames= list(NULL,c("ID")))
-    YCOORD <- coord[,2]
-    XCOORD <- coord[,1]
-    
-    ################ Get the country boundaries and admin info
-    country <-  input$countrycode
-    print(country)
-    
-    withProgress(
-      message= 'Downloading country names', 
-      value = 0, 
-      {
-        setProgress(value=.1)
-        country <- getData('ISO3',path='www/')[,1][getData('ISO3',path='www/')[,2]== country]
-        #country <- "CIV"
-      })
-    
-    withProgress(
-      message= 'Downloading administrative boundaries', 
-      value = 0, 
-      {
-        setProgress(value=.1)
-        adm <- getData ('GADM',path='www/', country= country, level=1)
-      })
-    
-    proj4string(sp_df) <- proj4string(adm)
-    adm1 <- over(sp_df, adm)
-    
-    ################ Get the SRTM DEM information for the points
-    withProgress(
-      message= 'Downloading elevation data', 
-      value = 0, 
-      {
-        elevation <- getData("alt",path='www/', country = country)
-      })
-    slope  <- terrain(elevation, opt = "slope")
-    aspect <- terrain(elevation, opt = "aspect")
+    print("Load the spatial Points/Polygons")
     
     
-    ELEVATION <- extract(elevation, cbind(coord[,1], coord[,2]))
-    SLOPE     <- extract(slope,     cbind(coord[,1], coord[,2]))
-    ASPECT    <- extract(aspect,    cbind(coord[,1], coord[,2]))
     
-    rm(elevation)
-    rm(slope)
-    rm(aspect)
+    if(mapType()== "raster_type"){
+      ################ If the type is raster the sp_df is POINTS, use directly
+      sp_df<-spdf()
+      coord <- sp_df@coords
+      map_code <- sp_df@data[,1]
+      nsamples <- nrow(coord)
+      ID <- matrix(sample(1:nsamples , nsamples , replace=F),nrow = nsamples , ncol =1, dimnames= list(NULL,c("ID")))
+      YCOORD <- coord[,2]
+      XCOORD <- coord[,1]
+      GEOMETRY <- rep("points",nsamples)
+      AREA   <- rep(1,nsamples)    
+      }
+    else{
+      if(mapType()== "vector_type"){
+        
+        ################ If the type is vector the sp_df is POLYGONS, 
+        ################ Loop through all polygons, translate geometry in WKT and get first node
+        sp_df <- spTransform(all_features(),CRS("+proj=longlat +datum=WGS84"))
+        
+        npoly <- nrow(sp_df@data)
+        
+        class_attr <- input$class_attribute_vector
+        map_code <- sp_df@data[,class_attr]
+        
+        df <- data.frame(matrix(nrow=0,ncol=3))
+        names(df)<-c("XCOORD","YCOORD","GEOMETRY")
+        df$XCOORD <- as.numeric(df$XCOORD)
+        df$YCOORD <- as.numeric(df$YCOORD)
+        df$GEOMETRY <- as.character(df$GEOMETRY)
+        
+        for(k in 1:npoly){
+          poly <- sp_df[k,]
+          print(k)
+          coords <- data.frame(coordinates(poly@polygons[[1]]@Polygons[[1]]))
+          
+          head <- paste0('<Polygon><outerBoundaryIs><LinearRing><coordinates>')
+          tail <- paste0('</coordinates></LinearRing></outerBoundaryIs></Polygon>')
+          
+          first_node <- paste0(coords[1,1],",",coords[1,2])
+          middle <- first_node
+          
+          for(i in 2:nrow(coords)){
+            node <- paste0(coords[i,1],",",coords[i,2])
+            middle <- paste0(middle,"\ ",node)
+            }
+          
+          middle <- paste0(middle,"\ ",first_node)
+          kml_geom <- paste0(head,middle,tail)
+          
+          #a_point <- spsample(poly,10,type = "random")[1]
+          
+          line <- data.frame(cbind(coords[1,1],coords[1,2],kml_geom))
+          
+          names(line)<-c("XCOORD","YCOORD","GEOMETRY")
+          line$XCOORD <- as.numeric(line$XCOORD)
+          line$YCOORD <- as.numeric(line$YCOORD)
+          df <- rbind(df,line)
+        }
+        
+        ID <- matrix(sample(1:npoly , npoly , replace=F),nrow = npoly , ncol =1, dimnames= list(NULL,c("ID")))
+        YCOORD <- df$YCOORD
+        XCOORD <- df$XCOORD
+        GEOMETRY <- df$GEOMETRY
+        AREA <- gArea(all_features(),byid=TRUE)
+        
+        }
+      ################ End of the polygon type generation of CE file
+    }
+      
     
-    ADM1_NAME <- adm1[,6]
-    ADM1_NAME <- str_replace_all(ADM1_NAME,"[[:punct:]]","")
-    COUNTRY <- adm1[,4]
+      ################ Get the country boundaries and admin info
+      country <-  input$countrycode
+      print(country)
+      
+      withProgress(
+        message= 'Downloading country names', 
+        value = 0, 
+        {
+          setProgress(value=.1)
+          country <- getData('ISO3',path='www/')[,1][getData('ISO3',path='www/')[,2]== country]
+          #country <- "KHM"
+        })
+      
+      withProgress(
+        message= 'Downloading administrative boundaries', 
+        value = 0, 
+        {
+          setProgress(value=.1)
+          adm <- getData ('GADM',path='www/', country= country, level=1)
+        })
+      
+      ptdf<-SpatialPointsDataFrame(
+        coords=data.frame(cbind(XCOORD,YCOORD)),
+        data=data.frame(ID),
+        proj4string=CRS("+proj=longlat +datum=WGS84")
+      )
+      
+      proj4string(ptdf) <- proj4string(adm)
+      adm1 <- over(ptdf, adm)
+      
+      ################ Get the SRTM DEM information for the points
+      withProgress(
+        message= 'Downloading elevation data', 
+        value = 0, 
+        {
+          elevation <- getData("alt",path='www/', country = country)
+        })
+      slope  <- terrain(elevation, opt = "slope")
+      aspect <- terrain(elevation, opt = "aspect")
+      
+      
+      ELEVATION <- extract(elevation, cbind(XCOORD, YCOORD))
+      SLOPE     <- extract(slope,     cbind(XCOORD, YCOORD))
+      ASPECT    <- extract(aspect,    cbind(XCOORD, YCOORD))
+      
+      rm(elevation)
+      rm(slope)
+      rm(aspect)
+      
+      ADM1_NAME <- adm1[,6]
+      ADM1_NAME <- str_replace_all(ADM1_NAME,"[[:punct:]]","")
+      COUNTRY <- adm1[,4]
+      
+      ################ Bind all vectors together in one matrix
+      m <- as.data.frame(cbind(ID, YCOORD, XCOORD, ELEVATION, SLOPE, ASPECT, ADM1_NAME, COUNTRY, GEOMETRY,AREA))
+      names(m) <- c("ID", "YCOORD", "XCOORD", "ELEVATION", "SLOPE", "ASPECT", "ADM1_NAME", "COUNTRY","GEOMETRY","AREA")
+      
+      ################ Add the map code
+      m$map_class <- as.character(map_code)
+      
+      ################ Clean existing csv files
+      system("rm www/cep_template/*.csv")
+      
+      ################ Export the csv file with points
+      write.csv(m,paste0("www/cep_template/pts_",gsub(" ","_",input$basename_CE),".csv"),row.names=F)
+      #write.csv(m,paste0("www/cep_template/pts_",gsub(" ","_","testtesttest"),".csv"),row.names=F)
     
-    ################ Bind all vectors together in one matrix
-    m <- as.data.frame(cbind(ID, YCOORD, XCOORD, ELEVATION, SLOPE, ASPECT, ADM1_NAME, COUNTRY))
-    names(m) <- c("ID", "YCOORD", "XCOORD", "ELEVATION", "SLOPE", "ASPECT", "ADM1_NAME", "COUNTRY")
-    
-    ################ Add the map code
-    m$map_class <- as.character(map_code)
-    
-    ################ Clean existing csv files
-    system("rm www/cep_template/*.csv")
-    
-    ################ Export the csv file with points
-    write.csv(m,paste0("www/cep_template/pts_",gsub(" ","_",input$basename_CE),".csv"),row.names=F)
     
     ################ Create a dummy distribution for the analysis
     pts <- m
@@ -1481,16 +1531,18 @@ server <- function(input, output,session) {
     tmp$aspect       <- pts$ASPECT
     tmp$adm1_name    <- pts$ADM1_NAME
     tmp$country      <- pts$COUNTRY
+    tmp$geom         <- "no_geom_record"
+    tmp$area         <- pts$AREA
     tmp$saved        <- "FALSE"
     tmp$year         <- strsplit(x = as.character(Sys.Date()), split = "-" )[[1]][1]
     tmp$month        <- strsplit(x = as.character(Sys.Date()), split = "-" )[[1]][2]
     tmp$day          <- strsplit(x = as.character(Sys.Date()), split = "-" )[[1]][3]
     tmp$plot         <- "response.csv"
-    tmp$ref_code     <- pts$map_class
+    tmp$ref_class     <- pts$map_class
     tmp$confidence   <- "FALSE"
-    tmp$map_code     <- pts$map_class
+    tmp$map_class     <- pts$map_class
 
-    table(tmp$ref_code,tmp$map_code)
+    table(tmp$ref_class,tmp$map_class)
 
     ## Create a random number
     tmp$rand_th      <- runif(nrow(tmp),0,1)
@@ -1499,7 +1551,7 @@ server <- function(input, output,session) {
     tmp$rand_leg     <- sample(legend,nrow(tmp),replace=T)
 
     ## Replace the cover column with random values where random index is inferior to threshold
-    tmp[tmp$rand_th < 0.15,]$ref_code <- tmp[tmp$rand_th < 0.15,]$rand_leg
+    tmp[tmp$rand_th < 0.15,]$ref_class <- tmp[tmp$rand_th < 0.15,]$rand_leg
 
     ## Reset the random number
     tmp$rand_th      <- runif(nrow(tmp),0,1)
@@ -1508,16 +1560,16 @@ server <- function(input, output,session) {
     tmp[tmp$rand_th < 0.75,]$confidence <- "TRUE"
 
     ## Select only the columns that will work as CE output
-    df <- tmp[,1:18]
+    df <- tmp[,1:20]
     names(df)<-c("id","location_srs","location_x","location_y","operator",
-                 "elevation","slope","aspect","adm1_name","country",
+                 "elevation","slope","aspect","adm1_name","country","geometry","area",
                  "actively_saved","actively_saved_on_year","actively_saved_on_month","actively_saved_on_day",
-                 "plot_file","ref_code","confidence","map_code")
+                 "plot_file","ref_class","confidence","map_class")
 
-    table(df$ref_code,df$map_code)
+    table(df$ref_class,df$map_class)
 
     ## Export as a Mockup dataset to use in the analysis
-    write.csv(df,paste(outdir(),"/collectedData_mockup_results_",Sys.Date(),".csv",sep=""),row.names=F)
+    write.csv(df,paste(outdir(),"/collectedData_mockup_",gsub(" ","_",input$basename_CE),"_",Sys.Date(),".csv",sep=""),row.names=F)
     
     ######################################################################################################
     ################# Generate the CEP file
@@ -1530,7 +1582,7 @@ server <- function(input, output,session) {
     codes <- data.frame(
       cbind(
       dfss[,c(1,3)],
-      seq(1020,1020+nrow(dfss)-1,1)
+      seq(1030,1030+nrow(dfss)-1,1)
       )
       )
     
@@ -1554,7 +1606,7 @@ server <- function(input, output,session) {
     ################# Modify placemark
     placemark <- readLines("www/template_placemark.idm.xml")
     head_block <- placemark[1:47]
-    tail_bock  <- placemark[60:152]
+    tail_bock  <- placemark[60:length(placemark)]
     
     block <- ""
     
@@ -1586,6 +1638,8 @@ server <- function(input, output,session) {
     
     ################ The final sampling design
     m
+    
+    
   })
   
   ##################################################################################################################################

@@ -154,8 +154,14 @@ ${html_for_balloon}
 <Data name="EXTRA_country">
 <value>${placemark.extraColumns[4]}</value>
 </Data>
-<Data name="EXTRA_map_class">
+<Data name="EXTRA_geometry">
 <value>${placemark.extraColumns[5]}</value>
+</Data>
+<Data name="EXTRA_area">
+<value>${placemark.extraColumns[6]}</value>
+</Data>
+<Data name="EXTRA_map_class">
+<value>${placemark.extraColumns[7]}</value>
 </Data>
 <Data name="EXTRA_id">
 <value>${placemark.idColumns[0]}</value>

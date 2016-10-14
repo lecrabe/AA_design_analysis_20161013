@@ -1,4 +1,4 @@
-<Schema name="aa_template">
+<Schema name="aa_template_polygon">
   <Cube name="Collect Earth Plot" cache="true" enabled="true">
     <Table name="plot" schema="${saikuDbSchema}"/>
     <Dimension name="Id" type="StandardDimension" visible="true">
@@ -40,6 +40,16 @@
     <Dimension name="Country" type="StandardDimension" visible="true">
       <Hierarchy visible="true" hasAll="true">
         <Level name="Country" column="country" uniqueMembers="true" levelType="Regular" type="String"/>
+      </Hierarchy>
+    </Dimension>
+    <Dimension name="Geometry" type="StandardDimension" visible="true">
+      <Hierarchy visible="true" hasAll="true">
+        <Level name="Geometry" column="geometry" uniqueMembers="true" levelType="Regular" type="String"/>
+      </Hierarchy>
+    </Dimension>
+    <Dimension name="Unit Area" type="StandardDimension" visible="true">
+      <Hierarchy visible="true" hasAll="true">
+        <Level name="Unit Area" column="area" uniqueMembers="true" levelType="Regular" type="Numeric"/>
       </Hierarchy>
     </Dimension>
     <Dimension name="Map Class" foreignKey="map_class_code_id" type="StandardDimension" visible="true">
@@ -94,5 +104,8 @@
     <Measure name="aspect_min" column="aspect" datatype="Numeric" aggregator="min" caption="Aspect min" formatString="#.##"/>
     <Measure name="aspect_max" column="aspect" datatype="Numeric" aggregator="max" caption="Aspect max" formatString="#.##"/>
     <Measure name="aspect_avg" column="aspect" datatype="Numeric" aggregator="avg" caption="Aspect avg" formatString="#.##"/>
+    <Measure name="area_min" column="area" datatype="Numeric" aggregator="min" caption="Unit Area min" formatString="#.##"/>
+    <Measure name="area_max" column="area" datatype="Numeric" aggregator="max" caption="Unit Area max" formatString="#.##"/>
+    <Measure name="area_avg" column="area" datatype="Numeric" aggregator="avg" caption="Unit Area avg" formatString="#.##"/>
   </Cube>
 </Schema>
