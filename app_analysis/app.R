@@ -1,5 +1,5 @@
 ####################################################################################
-#######          Shiny app for accuracy assessment design       ####################
+#######          Shiny app for accuracy assessment analysis       ####################
 #######    contributors:  Remi d'Annunzio, Yelena Finegold,     ####################
 #######            Antonia Ortmann, Erik Lindquist              ####################
 #######              FAO Open Foris SEPAL project               ####################
